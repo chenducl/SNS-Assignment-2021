@@ -33,8 +33,7 @@ def train_trends():
     # Get confirmed cases dataset
     _, ds_rolling = get_dataset_trends()
     # Model types to be tested
-    # model_types = ['multi_layer_lstm', 'lstm_attention']
-    model_types = ['lstm_attention', 'attention_lstm']
+    model_types = ['attention_lstm']
     
     for model_type in model_types:
         configs = {
@@ -89,4 +88,4 @@ def bayesian_optimization():
     )
 
 if __name__ == "__main__":
-    bayesian_optimization()
+    train_trends()

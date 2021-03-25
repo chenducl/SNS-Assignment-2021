@@ -15,8 +15,8 @@ class LSTMModel(BaseModel):
     ''' LSTM models structures and implementation.
     '''
     def __init__(self, dataset=None, model_path='', model_type='',
-                        output_dim=128, epochs=400, verbose=1,
-                        loss='mse', optimizer='adam', dropout=0.2,
+                        output_dim=200, epochs=400, verbose=1,
+                        loss='mse', optimizer='adam', dropout=0.03,
                         activation='sigmoid', share_attention=False, **args):
         ''' Initialize the model parameters
         param dataset: Dataset object
@@ -78,10 +78,12 @@ class LSTMModel(BaseModel):
 
     def construct_attention_lstm(self):
         inputs = Input(shape=(self.dataset.timestamp, len(self.dataset.feature_cols)))
-        attention = self.attention_block(input)
+        attention = self.attention_block(inputs)
         attention = LSTM(units=self.output_dim, return_sequences=False)(attention)
         output = Dense(1, activation=self.activation)(attention)
-        self.model = Model(input=[inputs], output=output)
+        self.model = Model(inputs=[inputs], outputs=output)
+        # MSE loss and adam optimizer
+        self.model.compile(loss=self.loss, optimizer=self.optimizer)
 
     def construct_lstm_attention(self):
         # Inputs Layer
@@ -93,7 +95,9 @@ class LSTMModel(BaseModel):
         # Flatten to connect with Dense Layer
         attention = Flatten()(attention)
         output = Dense(1, activation=self.activation)(attention)
-        self.model = Model(input=[inputs], output=output)
+        self.model = Model(inputs=[inputs], outputs=output)
+        # MSE loss and adam optimizer
+        self.model.compile(loss=self.loss, optimizer=self.optimizer)
 
     def construct_model(self):
         ''' Build model from scratch
