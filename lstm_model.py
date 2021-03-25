@@ -1,5 +1,6 @@
 # Import necessities
 import seaborn as sns
+import pandas as pd
 
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import *
@@ -40,8 +41,8 @@ class LSTMModel(BaseModel):
         input_dim = int(input.shape[2])
         # Transpose with Permute
         a = Permute((2, 1))(input)
-        a = Reshape((input_dim, self.dataset.timestamp))(a)
-        a = Dense(self.dataset.timestamp, activation='softmax')(a)
+        a = Reshape((input_dim, self.dataset.timestep))(a)
+        a = Dense(self.dataset.timestep, activation='softmax')(a)
         if self.share_attention:
             a = Lambda(lambda x: K.mean(x, axis=1), name='dim_reduction')(a)
             a = RepeatVector(input_dim)(a)
@@ -49,8 +50,10 @@ class LSTMModel(BaseModel):
         return Multiply()([input, a_probs])
 
     def construct_single_layer_lstm(self):
+        ''' Create a single-layer LSTM model
+        '''
         self.model = Sequential()
-        self.model.add(LSTM(units=self.output_dim, input_shape=(self.dataset.timestamp, len(self.dataset.feature_cols))))
+        self.model.add(LSTM(units=self.output_dim, input_shape=(self.dataset.timestep, len(self.dataset.feature_cols))))
         # self.model.add(Dropout(self.dropout))
         self.model.add(Dense(units=len(self.dataset.label_cols)))
         # Activation Functions
@@ -60,9 +63,11 @@ class LSTMModel(BaseModel):
         self.model.compile(loss=self.loss, optimizer=self.optimizer)
 
     def construct_multi_layer_lstm(self):
+        ''' Create a multi-layer LSTM model
+        '''
         self.model = Sequential()
         # Three-layer LSTM with Dropout
-        self.model.add(LSTM(units=self.output_dim, return_sequences=True, input_shape=(self.dataset.timestamp, len(self.dataset.feature_cols))))
+        self.model.add(LSTM(units=self.output_dim, return_sequences=True, input_shape=(self.dataset.timestep, len(self.dataset.feature_cols))))
         self.model.add(Dropout(self.dropout))
         self.model.add(LSTM(units=self.output_dim, return_sequences=True))
         self.model.add(Dropout(self.dropout))
@@ -77,27 +82,42 @@ class LSTMModel(BaseModel):
         self.model.compile(loss=self.loss, optimizer=self.optimizer)
 
     def construct_attention_lstm(self):
-        inputs = Input(shape=(self.dataset.timestamp, len(self.dataset.feature_cols)))
+        ''' Create a single-layer LSTM with attention
+        '''
+        inputs = Input(shape=(self.dataset.timestep, len(self.dataset.feature_cols)))
         attention = self.attention_block(inputs)
         attention = LSTM(units=self.output_dim, return_sequences=False)(attention)
-        output = Dense(1, activation=self.activation)(attention)
+        output = Dense(len(self.dataset.label_cols), activation=self.activation)(attention)
         self.model = Model(inputs=[inputs], outputs=output)
         # MSE loss and adam optimizer
         self.model.compile(loss=self.loss, optimizer=self.optimizer)
 
     def construct_lstm_attention(self):
+        ''' Create a single-layer LSTM with attention
+        '''
         # Inputs Layer
-        inputs = Input(shape=(self.dataset.timestamp, len(self.dataset.feature_cols)))
+        inputs = Input(shape=(self.dataset.timestep, len(self.dataset.feature_cols)))
         # Single LSTM Layer
         lstm = LSTM(units=self.output_dim, return_sequences=True)(inputs)
         # Attention Block
         attention = self.attention_block(lstm)
         # Flatten to connect with Dense Layer
         attention = Flatten()(attention)
-        output = Dense(1, activation=self.activation)(attention)
+        output = Dense(len(self.dataset.label_cols), activation=self.activation)(attention)
         self.model = Model(inputs=[inputs], outputs=output)
         # MSE loss and adam optimizer
         self.model.compile(loss=self.loss, optimizer=self.optimizer)
+    
+    def get_acc(self):
+        ''' Obtain the accuracy on testing set
+        '''
+        acc_dict = {}
+        for i, label in enumerate(self.dataset.label_cols):
+            y_pred = self.model.predict(self.dataset.get_test_set())
+            y = self.dataset.y_test[label].values
+            acc_dict[label] = 1 - abs(y_pred[:,i].reshape(-1) - y) / y
+        acc = pd.DataFrame(acc_dict)
+        return acc
 
     def construct_model(self):
         ''' Build model from scratch

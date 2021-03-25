@@ -22,7 +22,6 @@ DEFAULT_CONFIGS = {
     'share_attention': False,
 }
 
-
 class BaseModel():
     ''' Other models are derived by inheritance from BaseModel.
     '''
@@ -91,7 +90,7 @@ class BaseModel():
         len_train = len(self.dataset.y_train)
         len_test = len(self.dataset.y_test)
         plt.plot(range(0, len_train), self.dataset.y_train, label='y_train')
-        plt.plot(range(self.dataset.timestamp, len_train), self.model.predict(
+        plt.plot(range(self.dataset.timestep, len_train), self.model.predict(
             self.dataset.get_training_set()), label='pred_train')
         plt.plot(range(len_train, len_train+len_test),
                  self.dataset.y_test, label='y_test')

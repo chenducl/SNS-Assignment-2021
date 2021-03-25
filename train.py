@@ -33,7 +33,7 @@ def train_trends():
     # Get confirmed cases dataset
     _, ds_rolling = get_dataset_trends()
     # Model types to be tested
-    model_types = ['attention_lstm']
+    model_types = ['lstm_attention']
     
     for model_type in model_types:
         configs = {
@@ -88,4 +88,22 @@ def bayesian_optimization():
     )
 
 if __name__ == "__main__":
-    train_trends()
+    # Get confirmed cases dataset
+    dataset, dataset_rolling = get_dataset_confirmed()
+    model_types = ['single_layer_lstm', 'multi_layer_lstm']
+
+    acc = pd.DataFrame(columns=model_types)
+
+    for model_type in model_types:
+        configs = {
+            'dataset': dataset_rolling,
+            'model_path': f"./models/{model_type}_confirmed",
+            'model_type': model_type,
+        }
+        model = LSTMModel(**configs)
+        model.construct_model()
+        model.train()
+        model.save_model()
+        # model.read_model()
+        # model.evaluate()
+        acc[model_type] = model.get_acc()['confirmed'].values
