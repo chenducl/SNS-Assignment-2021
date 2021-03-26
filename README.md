@@ -83,7 +83,7 @@ dataset = Dataset(dataset_csv, feature_cols=features, label_cols=labels, test_si
 
 I apply `Timeseriesgenerator` to form the training and testing sets, which can be directly fed into Keras time series models. You can use `dataset.get_training_set()` and `dataset.get_test_set()` to access both splits for training and evaluations.
 
-## Models
+### Models
 
 Pass the parameters into LSTMModel constructors to initialize the model.
 
